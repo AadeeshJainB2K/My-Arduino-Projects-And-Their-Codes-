@@ -4,8 +4,8 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
-#define trigPin 9
-#define echoPin 8
+#define trigPin 1
+#define echoPin 2
 
 #define OLED_RESET 4
 Adafruit_SSD1306 display(OLED_RESET);
