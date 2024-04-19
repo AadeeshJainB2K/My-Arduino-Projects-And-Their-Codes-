@@ -127,6 +127,7 @@ body {
   margin: 3vw;
   border: none;
   transition: all 2s ease-in-out;
+  align-self: center;
 }
 
 .button:hover {
