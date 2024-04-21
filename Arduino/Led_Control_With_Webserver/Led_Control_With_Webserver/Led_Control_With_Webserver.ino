@@ -85,6 +85,13 @@ void loop() {
   client.println("<a href=\'/bell-off\' style = 'align-self: center;margin: 0;padding: 0;box-sizing: border-box;display: flex;align-items:center;justify-content:center;text-align: center;outline: none;text-decoration:none;border-radius: 20vh;height: 8vh;width: 12vw;'><button class='button' style = 'text-decoration:none;padding: 0;box-sizing: border-box;display: inline;text-align: center;outline: none;border-radius: 20vh;height: 8vh;width: 12vw;background: rgb(0, 255, 162);background-size: 100vw;box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);-webkit-backdrop-filter: blur(1px);backdrop-filter: blur(2px);border: 1px solid rgba(255, 255, 255, 0.18);color: #2222ff;z-index: 2;right: 2vw;font-size: 1.7vh;cursor: pointer;margin: 3vw;border: none;transition: all 2s ease-in-out;'>OFF</button></a>");
   client.println("</div>");
   client.println("</div>");
+  client.println("<script>");
+  client.println("// Automatic Bell Project | Aadeesh Jain");
+  client.println("let bellOnButton = document.querySelector('#onButton');");
+  client.println("let bellOffButton = document.querySelector('#offButton');");
+  client.println("bellOnButton.addEventListener('click', () => {console.log('Bell is ON');});");
+  client.println("bellOffButton.addEventListener('click', () => {console.log('Bell is OFF');});");
+  client.println("function bellRing() {bellOnButton.click();setTimeout(() => {bellOffButton.click();}, 3000);}");
   client.println("");
   client.println("");
   client.println("");
@@ -99,15 +106,7 @@ void loop() {
   client.println("");
   client.println("");
   client.println("");
-  client.println("");
-  client.println("");
-  client.println("");
-  client.println("");
-  client.println("");
-  client.println("");
-  client.println("");
-  client.println("");
-  client.println("");
+  client.println("</script>");
   client.println("</body>");
   client.println("</html>");
 
