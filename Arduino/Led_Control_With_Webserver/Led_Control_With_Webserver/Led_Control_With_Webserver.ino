@@ -3,8 +3,8 @@
 
 #include <ESP8266WiFi.h>
 
-const char* ssid = "Abhas-AirFiber 5G";  // Replace with your WiFi name
-const char* password = "Amanagam123";    // Replace with your WiFi password
+const char* ssid = "Atal Lab";  // Replace with your WiFi name
+const char* password = "123456788";    // Replace with your WiFi password
 
 #define BELL D3
 
@@ -81,8 +81,8 @@ void loop() {
   client.println("<img id='icon' style = '  background-image: url('https://i.pinimg.com/originals/5a/4e/f9/5a4ef9b9d7806da10afb1e9b3efdb22d.png');background-size: cover;height: 9vh;width: 9vh;border-color: transparent;border: none;border-radius: 20px;margin-left: 1vw;'>");
   client.println("</div>");
   client.println("<div class='main' style = 'margin: 0;padding: 0;box-sizing: border-box;height: 75%;width: 100%; display: flex;align-items: center;justify-content: center;'>");
-  client.println("<a href=\'/bell-on\' style = 'align-self: center;margin: 0;padding: 0;box-sizing: border-box;display: flex; align-items:center;justify-content:center;text-align: center;outline: none;text-decoration:none;border-radius: 20vh;height: 8vh;width: 12vw;'><button class='button' style = 'text-decoration:none;padding: 0;box-sizing: border-box;display: inline;text-align: center;outline: none;border-radius: 12vh;height: 8vh;width: 12vw;background: rgb(0, 255, 162);background-size: 100vw;box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);-webkit-backdrop-filter: blur(1px);backdrop-filter: blur(2px);border: 1px solid rgba(255, 255, 255, 0.18);color: #2222ff;z-index: 2;right: 2vw;font-size: 1.7vh;cursor: pointer;margin: 3vw;border: none;transition: all 2s ease-in-out;'>ON</button></a>");
-  client.println("<a href=\'/bell-off\' style = 'align-self: center;margin: 0;padding: 0;box-sizing: border-box;display: flex;align-items:center;justify-content:center;text-align: center;outline: none;text-decoration:none;border-radius: 20vh;height: 8vh;width: 12vw;'><button class='button' style = 'text-decoration:none;padding: 0;box-sizing: border-box;display: inline;text-align: center;outline: none;border-radius: 20vh;height: 8vh;width: 12vw;background: rgb(0, 255, 162);background-size: 100vw;box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);-webkit-backdrop-filter: blur(1px);backdrop-filter: blur(2px);border: 1px solid rgba(255, 255, 255, 0.18);color: #2222ff;z-index: 2;right: 2vw;font-size: 1.7vh;cursor: pointer;margin: 3vw;border: none;transition: all 2s ease-in-out;'>OFF</button></a>");
+  client.println("<a href=\'/bell-on\' style = 'align-self: center;margin: 0;padding: 0;box-sizing: border-box;display: flex; align-items:center;justify-content:center;text-align: center;outline: none;text-decoration:none;border-radius: 20vh;height: 8vh;width: 12vw;'><button class='button' id = 'onButton' style = 'text-decoration:none;padding: 0;box-sizing: border-box;display: inline;text-align: center;outline: none;border-radius: 12vh;height: 8vh;width: 12vw;background: rgb(0, 255, 162);background-size: 100vw;box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);-webkit-backdrop-filter: blur(1px);backdrop-filter: blur(2px);border: 1px solid rgba(255, 255, 255, 0.18);color: #2222ff;z-index: 2;right: 2vw;font-size: 1.7vh;cursor: pointer;margin: 3vw;border: none;transition: all 2s ease-in-out;'>ON</button></a>");
+  client.println("<a href=\'/bell-off\' style = 'align-self: center;margin: 0;padding: 0;box-sizing: border-box;display: flex;align-items:center;justify-content:center;text-align: center;outline: none;text-decoration:none;border-radius: 20vh;height: 8vh;width: 12vw;'><button class='button' id = 'offButton' style = 'text-decoration:none;padding: 0;box-sizing: border-box;display: inline;text-align: center;outline: none;border-radius: 20vh;height: 8vh;width: 12vw;background: rgb(0, 255, 162);background-size: 100vw;box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);-webkit-backdrop-filter: blur(1px);backdrop-filter: blur(2px);border: 1px solid rgba(255, 255, 255, 0.18);color: #2222ff;z-index: 2;right: 2vw;font-size: 1.7vh;cursor: pointer;margin: 3vw;border: none;transition: all 2s ease-in-out;'>OFF</button></a>");
   client.println("</div>");
   client.println("</div>");
   client.println("<script>");
