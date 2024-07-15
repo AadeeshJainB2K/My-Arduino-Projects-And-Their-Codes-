@@ -1,64 +1,28 @@
-#include <SPI.h>
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-
-#define trigPin 9
-#define echoPin 8
-
-#define OLED_RESET 4
-Adafruit_SSD1306 display(OLED_RESET);
-
 void setup() {
-Serial.begin (9600);
-pinMode(trigPin, OUTPUT);
-pinMode(echoPin, INPUT);
-display.begin(SSD1306_SWITCHCAPVCC, 0x3C); //initialize with the I2C addr 0x3C (128x64)
-display.clearDisplay();
+  Serial.begin (9600);
+  Serial.println ("I2C scanner. Scanning ...");
+  byte count = 0;
+  // 0x27 0x3F
+  Wire.begin();
+  for (byte i = 8; i < 120; i++)
+  {
+    Wire.beginTransmission (i);
+    if (Wire.endTransmission () == 0)
+      {
+      Serial.print ("Found address: ");
+      Serial.print (i, DEC);
+      Serial.print (" (0x");
+      Serial.print (i, HEX);
+      Serial.println (")");
+      count++;
+      delay (1);
+      }
+  }
+  Serial.println ("Done.");
+  Serial.print ("Found ");
+  Serial.print (count, DEC);
+  Serial.println (" device(s).");
+}  // end of setup
 
-}
-
-void loop() {
-float duration;
-float distance_cm;
-float distance_in;
-
-digitalWrite(trigPin, LOW); //PULSE __|---|__
-delayMicroseconds(0.1);
-digitalWrite(trigPin, HIGH);
-delayMicroseconds(0.2);
-digitalWrite(trigPin, LOW);
-
-duration = pulseIn(echoPin, HIGH);
-
-distance_cm = (duration/2) / 29.1;
-distance_in = (duration/2) / 73.914;
-
-display.setCursor(26,0); //oled display
-display.setTextSize(1);
-display.setTextColor(WHITE);
-display.println("Distance Meter");
-
-display.setCursor(5,10); //oled display
-display.setTextSize(1);
-display.setTextColor(WHITE);
-display.println(distance_cm);
-display.setCursor(100,10);
-display.setTextSize(1);
-display.println("cm");
-
-display.setCursor(5,20); //oled display
-display.setTextSize(1);
-display.setTextColor(WHITE);
-display.println(distance_in);
-display.setCursor(100,20);
-display.setTextSize(1);
-display.println("in");
-display.display();
-
-delay(500);
-display.clearDisplay();
-
-Serial.println(distance_cm);
-Serial.println(distance_in);
-}
+void loop() {}
