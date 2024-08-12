@@ -6,7 +6,7 @@ RFID rfid(10, 9);       // D10: pin of tag reader SDA. D9: pin of tag reader RST
 unsigned char status; 
 unsigned char str[MAX_LEN]; // MAX_LEN is 16: size of the array 
 
-String accessGranted[2] = {"637241402", "439125403"};  // RFID serial numbers to grant access to
+String accessGranted[2] = {"15922114122", "439125403"};  // RFID serial numbers to grant access to
 int accessGrantedSize = 2;                                // The number of serial numbers
 
 Servo lockServo;                // Servo for locking mechanism

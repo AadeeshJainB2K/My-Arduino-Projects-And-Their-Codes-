@@ -53,7 +53,7 @@ void loop()
     // Scroll left and right
     lcd.setCursor(0, 0);
    lcd.print(F(" "));
-    lcd.print(F(" ATL Welcomes You All VMC Members "));
+    lcd.print(F(" ATL Welcomes You"));
     lcd.print(F(" "));
      lcd.createChar(0, happy);
      lcd.write(0);

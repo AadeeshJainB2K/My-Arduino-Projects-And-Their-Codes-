@@ -1,14 +1,10 @@
 
-//www.quadstore.in
-//www.quadrobotics.in
-//Smart Dustbin by Quad Store
-
+#include <SPI.h>
+#include <Wire.h>
 #include <Servo.h>   //servo library
-
-Servo servo;     
 int trigPin = 9;    
 int echoPin = 8;   
-int servoPin = 7;
+int servoPin = 5;
 int led= 10;
 long duration, dist, average;   
 long aver[3];   //array for average
@@ -54,4 +50,42 @@ if ( dist<200 ) {
  servo.detach();      
 }
 Serial.print(dist);
+}
+
+
+#define trigPin 9
+#define echoPin 8
+#define relayPin 10
+
+void setup() {
+Serial.begin (9600);
+pinMode(trigPin, OUTPUT);
+pinMode(echoPin, INPUT);
+pinMode(relayPin, OUTPUT);
+}
+
+void loop() {
+float duration;
+float distance_cm;
+float distance_in;
+
+digitalWrite(trigPin, LOW); //PULSE __|---|__
+delayMicroseconds(2);
+digitalWrite(trigPin, HIGH);
+delayMicroseconds(10);
+digitalWrite(trigPin, LOW);
+
+duration = pulseIn(echoPin, HIGH);
+
+distance_cm = (duration/2) / 29.1;
+distance_in = (duration/2) / 73.914;
+
+if (distance_cm<100){
+  digitalWrite(relayPin, HIGH);
+}else{
+  digitalWrite(relayPin, LOW);
+}
+
+Serial.println(distance_cm);
+Serial.println(distance_in);
 }
