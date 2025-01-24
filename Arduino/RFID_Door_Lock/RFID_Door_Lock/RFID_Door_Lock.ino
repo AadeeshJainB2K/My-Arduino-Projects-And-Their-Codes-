@@ -17,7 +17,7 @@ boolean locked = true;
 int redLEDPin = 5;
 int greenLEDPin = 6;
 
-unsigned long unlockTime = 0;   // Time when the door was unlocked
+unsigned long unlockTime = 5;   // Time when the door was unlocked
 const unsigned long LOCK_DURATION = 5000;  // Lock duration in milliseconds (5 seconds)
 
 void setup() 
