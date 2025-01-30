@@ -16,7 +16,6 @@
    - https://github.com/arduino-libraries/ArduinoIoTCloud/#ota
 */
 
-#include "arduino_secrets.h"
 #include "thingProperties.h"
 
 #if !defined(LED_BUILTIN) && !defined(ARDUINO_NANO_ESP32)
@@ -40,7 +39,7 @@ bool ask_user_via_serial() {
   if (Serial.available()) {
     char c = Serial.read();
     if (c == 'y' || c == 'Y') {
-      return true;  
+      return true;
     }
   }
   return false;
@@ -57,7 +56,16 @@ bool onOTARequestCallback()
 void setup() {
   /* Initialize serial and wait up to 5 seconds for port to open */
   Serial.begin(9600);
-  for(unsigned long const serialBeginTime = millis(); !Serial && (millis() - serialBeginTime > 5000); ) { }
+  for(unsigned long const serialBeginTime = millis(); !Serial && (millis() - serialBeginTime <= 5000); ) { }
+
+  /* Set the debug message level:
+   * - DBG_ERROR: Only show error messages
+   * - DBG_WARNING: Show warning and error messages
+   * - DBG_INFO: Show info, warning, and error messages
+   * - DBG_DEBUG: Show debug, info, warning, and error messages
+   * - DBG_VERBOSE: Show all messages
+   */
+  setDebugMessageLevel(DBG_INFO);
 
   /* Configure LED pin as an output */
   pinMode(LED_BUILTIN, OUTPUT);
@@ -71,7 +79,6 @@ void setup() {
   /* Setup OTA callback */
   ArduinoCloud.onOTARequestCb(onOTARequestCallback);
 
-  setDebugMessageLevel(DBG_INFO);
   ArduinoCloud.printDebugInfo();
 }
 

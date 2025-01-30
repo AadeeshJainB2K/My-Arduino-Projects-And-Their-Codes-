@@ -1,57 +1,48 @@
+#include <LCD_I2C.h>
 #include <DHT.h>
-#include <DHT_U.h>
 
-#include <Adafruit_Sensor.h>
-
-#define DHTPIN 2
+#define DHTPIN 2     // Pin where the DHT11 data pin is connected
 #define DHTTYPE DHT11
 
-#define GreenLed 3
-#define YellowLed 4
-#define RedLed 5
-#define WhiteLed 6
-
-
-DHT dht (DHTPIN, DHTTYPE);
-
-int HighTemp = 25;
-int LowTemp = 16;
+LCD_I2C lcd(0x27, 16, 2); // I2C address 0x27 for 16x2 LCD
+DHT dht(DHTPIN, DHTTYPE);
 
 void setup() {
-// put your setup code here, to run once:
-pinMode(GreenLed, OUTPUT);
-pinMode(RedLed, OUTPUT);
+  lcd.begin();          // Initialize the LCD
+  lcd.backlight();      // Turn on the backlight
+  lcd.setCursor(0, 0);  // Set cursor to the first column, first row
+  lcd.print(F("Initializing"));
+  lcd.setCursor(0, 1);
+  lcd.print(F("DHT11 & LCD"));
 
-Serial.begin(9600);
-Serial.println("Temp Sensor V1.0");
+  dht.begin();          // Initialize the DHT sensor
+  delay(2000);          // Allow time for sensor to stabilize
 
-dht.begin();
+  lcd.clear();          // Clear the LCD screen
 }
 
 void loop() {
-// put your main code here, to run repeatedly:
-delay(1000);
+  float temperature = dht.readTemperature();  // Read temperature in Celsius
+  float humidity = dht.readHumidity();        // Read humidity
 
-float humidity = dht.readHumidity();
-float temp = dht.readTemperature();
+  // Check if the readings are valid
+  if (isnan(temperature) || isnan(humidity)) {
+    lcd.setCursor(0, 0);
+    lcd.print(F("Sensor Error"));
+    lcd.setCursor(0, 1);
+    lcd.print(F("Check DHT11"));
+  } else {
+    lcd.setCursor(0, 0);
+    lcd.print(F("Temp: "));
+    lcd.print(temperature);
+    lcd.print((char)223); // Degree symbol
+    lcd.print(F("C"));
 
-if (isnan(humidity) || isnan (temp)) {
-Serial.println("No DHT Sensor!");
-return;
+    lcd.setCursor(0, 1);
+    lcd.print(F("Humidity: "));
+    lcd.print(humidity);
+    lcd.print(F("%"));
+  }
+
+  delay(0); // Update immediately
 }
-
-Serial.print("Humidity: ");
-Serial.print(humidity);
-Serial.print("% Temperature: ");
-Serial.print(temp);
-Serial.println("°C");
-
-if (temp > HighTemp && temp < LowTemp) {
-digitalWrite(YellowLed, HIGH);
-digitalWrite(GreenLed, LOW);
-}
-else ( {
-digitalWrite(GreenLed, HIGH);
-digitalWrite(YellowLed, LOW);
-}
-);}

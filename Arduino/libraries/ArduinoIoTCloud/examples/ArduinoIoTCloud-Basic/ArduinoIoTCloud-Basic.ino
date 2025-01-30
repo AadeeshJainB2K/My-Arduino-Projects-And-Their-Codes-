@@ -7,14 +7,13 @@
 
   IMPORTANT:
   This sketch works with WiFi, GSM, NB, Ethernet and Lora enabled boards supported by Arduino IoT Cloud.
-  On a LoRa board, if it is configured as a class A device (default and preferred option), values from Cloud dashboard are received
-  only after a value is sent to Cloud.
+  On a LoRa board, if it is configured as a class A device (default and preferred option),
+  values from Cloud dashboard are received only after a value is sent to Cloud.
 
   The full list of compatible boards can be found here:
    - https://github.com/arduino-libraries/ArduinoIoTCloud#what
 */
 
-#include "arduino_secrets.h"
 #include "thingProperties.h"
 
 #if !defined(LED_BUILTIN) && !defined(ARDUINO_NANO_ESP32)
@@ -24,7 +23,16 @@ static int const LED_BUILTIN = 2;
 void setup() {
   /* Initialize serial and wait up to 5 seconds for port to open */
   Serial.begin(9600);
-  for(unsigned long const serialBeginTime = millis(); !Serial && (millis() - serialBeginTime > 5000); ) { }
+  for(unsigned long const serialBeginTime = millis(); !Serial && (millis() - serialBeginTime <= 5000); ) { }
+
+  /* Set the debug message level:
+   * - DBG_ERROR: Only show error messages
+   * - DBG_WARNING: Show warning and error messages
+   * - DBG_INFO: Show info, warning, and error messages
+   * - DBG_DEBUG: Show debug, info, warning, and error messages
+   * - DBG_VERBOSE: Show all messages
+   */
+  setDebugMessageLevel(DBG_INFO);
 
   /* Configure LED pin as an output */
   pinMode(LED_BUILTIN, OUTPUT);
@@ -35,7 +43,6 @@ void setup() {
   /* Initialize Arduino IoT Cloud library */
   ArduinoCloud.begin(ArduinoIoTPreferredConnection);
 
-  setDebugMessageLevel(DBG_INFO);
   ArduinoCloud.printDebugInfo();
 }
 

@@ -29,6 +29,7 @@ Property::Property()
 , _min_delta_property{0.0f}
 , _min_time_between_updates_millis{DEFAULT_MIN_TIME_BETWEEN_UPDATES_MILLIS}
 , _permission{Permission::Read}
+, _write_policy{WritePolicy::Auto}
 , _get_time_func{nullptr}
 , _update_callback_func{nullptr}
 , _on_sync_callback_func{nullptr}
@@ -99,6 +100,18 @@ Property & Property::publishOnDemand() {
 Property & Property::encodeTimestamp()
 {
   _encode_timestamp = true;
+  return (*this);
+}
+
+Property & Property::writeOnChange()
+{
+  _write_policy = WritePolicy::Auto;
+  return (*this);
+}
+
+Property & Property::writeOnDemand()
+{
+  _write_policy = WritePolicy::Manual;
   return (*this);
 }
 
@@ -226,11 +239,7 @@ CborError Property::appendAttribute(String value, String attributeName, CborEnco
   }, encoder);
 }
 
-#ifdef __AVR__
-CborError Property::appendAttributeName(String attributeName, nonstd::function<CborError (CborEncoder& mapEncoder)>appendValue, CborEncoder *encoder)
-#else
 CborError Property::appendAttributeName(String attributeName, std::function<CborError (CborEncoder& mapEncoder)>appendValue, CborEncoder *encoder)
-#endif
 {
   if (attributeName != "") {
     // when the attribute name string is not empty, the attribute identifier is incremented in order to be encoded in the message if the _lightPayload flag is set
@@ -319,11 +328,7 @@ void Property::setAttribute(String& value, String attributeName) {
   });
 }
 
-#ifdef __AVR__
-void Property::setAttribute(String attributeName, nonstd::function<void (CborMapData & md)>setValue)
-#else
 void Property::setAttribute(String attributeName, std::function<void (CborMapData & md)>setValue)
-#endif
 {
   if (attributeName != "") {
     _attributeIdentifier++;
@@ -394,8 +399,10 @@ void onAutoSync(Property & property) {
 }
 
 void onForceCloudSync(Property & property) {
-  property.fromCloudToLocal();
-  property.execCallbackOnChange();
+  if (property.isDifferentFromCloud()) {
+    property.fromCloudToLocal();
+    property.execCallbackOnChange();
+  }
 }
 
 void onForceDeviceSync(Property & /* property */) {

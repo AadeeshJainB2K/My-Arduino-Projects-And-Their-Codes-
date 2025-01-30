@@ -23,38 +23,34 @@
  ******************************************************************************/
 
 #include <AIoTC_Config.h>
-
 #include <ArduinoIoTCloud.h>
-
-#ifdef BOARD_HAS_ECCX08
-  #include "tls/BearSSLClient.h"
-  #include "tls/utility/CryptoUtil.h"
-#elif defined(BOARD_ESP)
-  #include <WiFiClientSecure.h>
-#elif defined(ARDUINO_UNOR4_WIFI)
-  #include <WiFiSSLClient.h>
-#elif defined(ARDUINO_PORTENTA_C33)
-  #include "tls/utility/CryptoUtil.h"
-  #include <SSLClient.h>
-#elif defined(BOARD_HAS_SE050)
-  #include "tls/utility/CryptoUtil.h"
-  #include <WiFiSSLSE050Client.h>
-#endif
-
-#ifdef BOARD_HAS_OFFLOADED_ECCX08
-#include "tls/utility/CryptoUtil.h"
-#include <WiFiSSLClient.h>
-#endif
-
 #include <ArduinoMqttClient.h>
+#include <ArduinoIoTCloudThing.h>
+#include <ArduinoIoTCloudDevice.h>
+
+#if defined(BOARD_HAS_SECURE_ELEMENT)
+  #include <Arduino_SecureElement.h>
+  #include <utility/SElementArduinoCloudDeviceId.h>
+  #if !defined(BOARD_HAS_OFFLOADED_ECCX08)
+    #include <utility/SElementArduinoCloudCertificate.h>
+  #endif
+#endif
+
+#include <tls/utility/TLSClientMqtt.h>
+#include <tls/utility/TLSClientOta.h>
+
+#if OTA_ENABLED
+#include <ota/OTA.h>
+#endif
+
+#include "cbor/MessageDecoder.h"
+#include "cbor/MessageEncoder.h"
 
 /******************************************************************************
    CONSTANTS
  ******************************************************************************/
-
-static char const DEFAULT_BROKER_ADDRESS_SECURE_AUTH[] = "mqtts-sa.iot.arduino.cc";
+static char const DEFAULT_BROKER_ADDRESS_SECURE_AUTH[] = "iot.arduino.cc";
 static uint16_t const DEFAULT_BROKER_PORT_SECURE_AUTH = 8883;
-static char const DEFAULT_BROKER_ADDRESS_USER_PASS_AUTH[] = "mqtts-up.iot.arduino.cc";
 static uint16_t const DEFAULT_BROKER_PORT_USER_PASS_AUTH = 8884;
 
 /******************************************************************************
@@ -74,16 +70,11 @@ class ArduinoIoTCloudTCP: public ArduinoIoTCloudClass
              ArduinoIoTCloudTCP();
     virtual ~ArduinoIoTCloudTCP() { }
 
-
     virtual void update        () override;
     virtual int  connected     () override;
     virtual void printDebugInfo() override;
 
-    #if defined(BOARD_HAS_ECCX08) || defined(BOARD_HAS_OFFLOADED_ECCX08) || defined(BOARD_HAS_SE050)
     int begin(ConnectionHandler & connection, bool const enable_watchdog = true, String brokerAddress = DEFAULT_BROKER_ADDRESS_SECURE_AUTH, uint16_t brokerPort = DEFAULT_BROKER_PORT_SECURE_AUTH);
-    #else
-    int begin(ConnectionHandler & connection, bool const enable_watchdog = true, String brokerAddress = DEFAULT_BROKER_ADDRESS_USER_PASS_AUTH, uint16_t brokerPort = DEFAULT_BROKER_PORT_USER_PASS_AUTH);
-    #endif
     int begin(bool const enable_watchdog = true, String brokerAddress = DEFAULT_BROKER_ADDRESS_SECURE_AUTH, uint16_t brokerPort = DEFAULT_BROKER_PORT_SECURE_AUTH);
 
     #ifdef BOARD_HAS_SECRET_KEY
@@ -94,6 +85,8 @@ class ArduinoIoTCloudTCP: public ArduinoIoTCloudClass
     inline String   getBrokerAddress() const { return _brokerAddress; }
     inline uint16_t getBrokerPort   () const { return _brokerPort; }
 
+    inline PropertyContainer &getThingPropertyContainer() { return _thing.getPropertyContainer(); }
+
 #if OTA_ENABLED
     /* The callback is triggered when the OTA is initiated and it gets executed until _ota_req flag is cleared.
      * It should return true when the OTA can be applied or false otherwise.
@@ -101,7 +94,12 @@ class ArduinoIoTCloudTCP: public ArduinoIoTCloudClass
      */
     void onOTARequestCb(onOTARequestCallbackFunc cb) {
       _get_ota_confirmation = cb;
-      _ask_user_before_executing_ota = true;
+
+      if(_get_ota_confirmation) {
+        _ota.setOtaPolicies(OTACloudProcessInterface::ApprovalRequired);
+      } else {
+        _ota.setOtaPolicies(OTACloudProcessInterface::None);
+      }
     }
 #endif
 
@@ -113,112 +111,69 @@ class ArduinoIoTCloudTCP: public ArduinoIoTCloudClass
       ConnectPhy,
       SyncTime,
       ConnectMqttBroker,
-      SendDeviceProperties,
-      SubscribeDeviceTopic,
-      WaitDeviceConfig,
-      CheckDeviceConfig,
-      SubscribeThingTopics,
-      RequestLastValues,
       Connected,
       Disconnect,
     };
 
     State _state;
+    TimedAttempt _connection_attempt;
+    MessageStream _message_stream;
+    ArduinoCloudThing _thing;
+    ArduinoCloudDevice _device;
 
-    unsigned long _next_connection_attempt_tick;
-    unsigned int _last_connection_attempt_cnt;
-    unsigned long _next_device_subscribe_attempt_tick;
-    unsigned int _last_device_subscribe_cnt;
-    unsigned int _last_device_attach_cnt;
-    unsigned long _last_sync_request_tick;
-    unsigned int _last_sync_request_cnt;
-    unsigned long _last_subscribe_request_tick;
-    unsigned int  _last_subscribe_request_cnt;
     String _brokerAddress;
     uint16_t _brokerPort;
     uint8_t _mqtt_data_buf[MQTT_TRANSMIT_BUFFER_SIZE];
     int _mqtt_data_len;
     bool _mqtt_data_request_retransmit;
 
-    #if defined(BOARD_HAS_ECCX08)
-    ArduinoIoTCloudCertClass _cert;
-    BearSSLClient _sslClient;
-    CryptoUtil _crypto;
-    #elif defined(BOARD_HAS_OFFLOADED_ECCX08)
-    ArduinoIoTCloudCertClass _cert;
-    WiFiBearSSLClient _sslClient;
-    CryptoUtil _crypto;
-    #elif defined(BOARD_ESP)
-    WiFiClientSecure _sslClient;
-    #elif defined(ARDUINO_UNOR4_WIFI)
-    WiFiSSLClient _sslClient;
-    #elif defined(ARDUINO_PORTENTA_C33)
-    ArduinoIoTCloudCertClass _cert;
-    SSLClient _sslClient;
-    CryptoUtil _crypto;
-    #elif defined(BOARD_HAS_SE050)
-    ArduinoIoTCloudCertClass _cert;
-    WiFiSSLSE050Client _sslClient;
-    CryptoUtil _crypto;
-    #endif
-
-    #if defined (BOARD_HAS_SECRET_KEY)
+#if defined(BOARD_HAS_SECRET_KEY)
     String _password;
-    #endif
+#endif
 
+#if defined(BOARD_HAS_SECURE_ELEMENT)
+    SecureElement _selement;
+  #if !defined(BOARD_HAS_OFFLOADED_ECCX08)
+    ECP256Certificate _cert;
+  #endif
+#endif
+
+    TLSClientMqtt _brokerClient;
     MqttClient _mqttClient;
 
-    String _deviceTopicOut;
-    String _deviceTopicIn;
-    String _shadowTopicOut;
-    String _shadowTopicIn;
+    String _messageTopicOut;
+    String _messageTopicIn;
     String _dataTopicOut;
     String _dataTopicIn;
 
-    bool _deviceSubscribedToThing;
 
 #if OTA_ENABLED
-    bool _ota_cap;
-    int _ota_error;
-    String _ota_img_sha256;
-    String _ota_url;
-    bool _ota_req;
-    bool _ask_user_before_executing_ota;
+    TLSClientOta _otaClient;
+    ArduinoCloudOTA _ota;
     onOTARequestCallbackFunc _get_ota_confirmation;
 #endif /* OTA_ENABLED */
 
-    inline String getTopic_deviceout() { return String("/a/d/" + getDeviceId() + "/e/o");}
-    inline String getTopic_devicein () { return String("/a/d/" + getDeviceId() + "/e/i");}
-    inline String getTopic_shadowout() { return ( getThingId().length() == 0) ? String("") : String("/a/t/" + getThingId() + "/shadow/o"); }
-    inline String getTopic_shadowin () { return ( getThingId().length() == 0) ? String("") : String("/a/t/" + getThingId() + "/shadow/i"); }
+    inline String getTopic_messageout() { return String("/a/d/" + getDeviceId() + "/c/up");}
+    inline String getTopic_messagein () { return String("/a/d/" + getDeviceId() + "/c/dw");}
+
     inline String getTopic_dataout  () { return ( getThingId().length() == 0) ? String("") : String("/a/t/" + getThingId() + "/e/o"); }
     inline String getTopic_datain   () { return ( getThingId().length() == 0) ? String("") : String("/a/t/" + getThingId() + "/e/i"); }
 
     State handle_ConnectPhy();
     State handle_SyncTime();
     State handle_ConnectMqttBroker();
-    State handle_SendDeviceProperties();
-    State handle_WaitDeviceConfig();
-    State handle_CheckDeviceConfig();
-    State handle_SubscribeDeviceTopic();
-    State handle_SubscribeThingTopics();
-    State handle_RequestLastValues();
     State handle_Connected();
     State handle_Disconnect();
 
     static void onMessage(int length);
     void handleMessage(int length);
+    void sendMessage(Message * msg);
     void sendPropertyContainerToCloud(String const topic, PropertyContainer & property_container, unsigned int & current_property_index);
-    void sendThingPropertiesToCloud();
-    void sendDevicePropertiesToCloud();
-    void requestLastValue();
+
+    void attachThing(String thingId);
+    void detachThing();
     int write(String const topic, byte const data[], int const length);
 
-#if OTA_ENABLED
-    void sendDevicePropertyToCloud(String const name);
-#endif
-
-    void updateThingTopics();
 };
 
 /******************************************************************************

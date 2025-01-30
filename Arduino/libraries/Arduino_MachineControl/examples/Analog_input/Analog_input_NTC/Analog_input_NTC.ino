@@ -1,4 +1,16 @@
 /*
+ * IMPORTANT NOTE:
+ *
+ * This example is associated with the deprecated Arduino_MachineControl library.
+ * We have introduced a new and improved library called Arduino_PortentaMachineControl, which offers enhanced features
+ * and ongoing support. 
+ * We encourage you to update your projects to use the new library.
+ * 
+ * The functions and syntax in this example are not compatible with Arduino_PortentaMachineControl.
+ * Please refer to the migration guide for necessary adjustments.
+ */
+
+/*
   Machine Control - Analog in NTC Example
 
   This example provides the resistance value acquired by the
@@ -26,7 +38,7 @@ using namespace machinecontrol;
 
 #define REFERENCE_RES 100000
 
-float reference = 3.3;
+float reference = 3.0;
 float lowest_voltage = 2.7;
 
 void setup() {

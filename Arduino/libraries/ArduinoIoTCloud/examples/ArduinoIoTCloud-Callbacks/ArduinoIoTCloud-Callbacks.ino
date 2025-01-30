@@ -8,7 +8,7 @@
 
   You don't need any specific Properties to be created in order to demonstrate these functionalities.
   Simply create a new Thing and give it 1 arbitrary Property.
-  Remember that the Thing ID needs to be configured in thingProperties.h 
+  Remember that the Thing ID needs to be configured in thingProperties.h
   These events can be very useful in particular cases, for instance to disable a peripheral
   or a connected sensor/actuator when no data connection is available, as well as to perform
   specific operations on connection or right after properties values are synchronised.
@@ -19,20 +19,28 @@
 
   IMPORTANT:
   This sketch works with WiFi, GSM, NB, Ethernet and Lora enabled boards supported by Arduino IoT Cloud.
-  On a LoRa board, if it is configured as a class A device (default and preferred option), values from Cloud dashboard are received
-  only after a value is sent to Cloud.
+  On a LoRa board, if it is configured as a class A device (default and preferred option),
+  values from Cloud dashboard are received only after a value is sent to Cloud.
 
   The full list of compatible boards can be found here:
    - https://github.com/arduino-libraries/ArduinoIoTCloud#what
 */
 
-#include "arduino_secrets.h"
 #include "thingProperties.h"
 
 void setup() {
   /* Initialize serial and wait up to 5 seconds for port to open */
   Serial.begin(9600);
-  for(unsigned long const serialBeginTime = millis(); !Serial && (millis() - serialBeginTime > 5000); ) { }
+  for(unsigned long const serialBeginTime = millis(); !Serial && (millis() - serialBeginTime <= 5000); ) { }
+
+  /* Set the debug message level:
+   * - DBG_ERROR: Only show error messages
+   * - DBG_WARNING: Show warning and error messages
+   * - DBG_INFO: Show info, warning, and error messages
+   * - DBG_DEBUG: Show debug, info, warning, and error messages
+   * - DBG_VERBOSE: Show all messages
+   */
+  setDebugMessageLevel(DBG_INFO);
 
   /* This function takes care of connecting your sketch variables to the ArduinoIoTCloud object */
   initProperties();
@@ -52,7 +60,6 @@ void setup() {
   ArduinoCloud.addCallback(ArduinoIoTCloudEvent::SYNC, doThisOnSync);
   ArduinoCloud.addCallback(ArduinoIoTCloudEvent::DISCONNECT, doThisOnDisconnect);
 
-  setDebugMessageLevel(DBG_INFO);
   ArduinoCloud.printDebugInfo();
 }
 

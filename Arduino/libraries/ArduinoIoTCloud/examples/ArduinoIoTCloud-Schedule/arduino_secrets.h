@@ -1,21 +1,22 @@
-#include <ArduinoIoTCloud.h>
 #include <Arduino_ConnectionHandler.h>
 
 /* A complete list of supported boards with WiFi is available here:
  * https://github.com/arduino-libraries/ArduinoIoTCloud/#what
  */
 #if defined(BOARD_HAS_WIFI)
-  #define SECRET_SSID "YOUR_WIFI_NETWORK_NAME"
-  #define SECRET_PASS "YOUR_WIFI_PASSWORD"
+  #define SECRET_WIFI_SSID "YOUR_WIFI_NETWORK_NAME"
+  #define SECRET_WIFI_PASS "YOUR_WIFI_PASSWORD"
 #endif
 
-/* ESP8266 ESP32*/
+/* ESP8266 ESP32 */
 #if defined(BOARD_HAS_SECRET_KEY)
   #define SECRET_DEVICE_KEY "my-device-password"
 #endif
 
-/* MKR GSM 1400 */
-#if defined(BOARD_HAS_GSM)
+/* MKR GSM 1400 */ /* MKR NB 1500 */ /* Portenta CAT.M1/NB IoT GNSS Shield */
+/* Portenta H7 and C33 + Portenta Mid Carrier + 4G Module */
+#if defined(BOARD_HAS_GSM) || defined(BOARD_HAS_NB) || \
+    defined(BOARD_HAS_CATM1_NBIOT) || defined(BOARD_HAS_CELLULAR)
   #define SECRET_PIN ""
   #define SECRET_APN ""
   #define SECRET_LOGIN ""
@@ -26,14 +27,6 @@
 #if defined(BOARD_HAS_LORA)
   #define SECRET_APP_EUI ""
   #define SECRET_APP_KEY ""
-#endif
-
-/* MKR NB 1500 */
-#if defined(BOARD_HAS_NB)
-  #define SECRET_PIN ""
-  #define SECRET_APN ""
-  #define SECRET_LOGIN ""
-  #define SECRET_PASS ""
 #endif
 
 /* Portenta H7 + Ethernet shield */

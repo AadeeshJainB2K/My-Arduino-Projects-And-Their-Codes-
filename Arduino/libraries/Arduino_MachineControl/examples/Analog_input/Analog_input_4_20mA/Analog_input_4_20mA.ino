@@ -1,4 +1,16 @@
 /*
+ * IMPORTANT NOTE:
+ *
+ * This example is associated with the deprecated Arduino_MachineControl library.
+ * We have introduced a new and improved library called Arduino_PortentaMachineControl, which offers enhanced features
+ * and ongoing support. 
+ * We encourage you to update your projects to use the new library.
+ * 
+ * The functions and syntax in this example are not compatible with Arduino_PortentaMachineControl.
+ * Please refer to the migration guide for necessary adjustments.
+ */
+
+/*
   Machine Control - Analog in 4 - 20 mA Example
 
   This example provides the current value acquired by the
@@ -21,7 +33,7 @@ using namespace machinecontrol;
 
 #define SENSE_RES 120
 
-float reference = 3.3;
+float reference = 3.0;
 
 void setup() {
   analogReadResolution(16);

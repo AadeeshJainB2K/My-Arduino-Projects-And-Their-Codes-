@@ -32,13 +32,7 @@
 #undef max
 #undef min
 
-#ifdef __AVR__
-# include <Arduino_AVRSTL.h>
-# include <nonstd/nonstd.h>
-#else
 # include <functional>
-#endif
-
 #include <list>
 
 #include "../cbor/lib/tinycbor/cbor-lib.h"
@@ -131,6 +125,10 @@ enum class UpdatePolicy {
   OnChange, TimeInterval, OnDemand
 };
 
+enum class WritePolicy {
+  Auto, Manual
+};
+
 typedef void(*UpdateCallbackFunc)(void);
 typedef unsigned long(*GetTimeCallbackFunc)();
 class Property;
@@ -139,10 +137,6 @@ typedef void(*OnSyncCallbackFunc)(Property &);
 /******************************************************************************
    CLASS DECLARATION
  ******************************************************************************/
-
-#ifdef __AVR__
-#include "nonstd/nonstd.h"
-#endif
 
 class Property
 {
@@ -153,10 +147,12 @@ class Property
     /* Composable configuration of the Property class */
     Property & onUpdate(UpdateCallbackFunc func);
     Property & onSync(OnSyncCallbackFunc func);
-    Property & publishOnChange(float const min_delta_property, unsigned long const min_time_between_updates_millis = 0);
+    Property & publishOnChange(float const min_delta_property, unsigned long const min_time_between_updates_millis = DEFAULT_MIN_TIME_BETWEEN_UPDATES_MILLIS);
     Property & publishEvery(unsigned long const seconds);
     Property & publishOnDemand();
     Property & encodeTimestamp();
+    Property & writeOnChange();
+    Property & writeOnDemand();
 
     inline String name() const {
       return _name;
@@ -169,6 +165,9 @@ class Property
     }
     inline bool   isWriteableByCloud() const {
       return (_permission == Permission::Write) || (_permission == Permission::ReadWrite);
+    }
+    inline bool   isWritableOnChange() const {
+      return _write_policy == WritePolicy::Auto;
     }
 
     void setTimestamp(unsigned long const timestamp);
@@ -191,13 +190,8 @@ class Property
     CborError appendAttribute(unsigned int value, String attributeName = "", CborEncoder *encoder = nullptr);
     CborError appendAttribute(float value, String attributeName = "", CborEncoder *encoder = nullptr);
     CborError appendAttribute(String value, String attributeName = "", CborEncoder *encoder = nullptr);
-#ifndef __AVR__
     CborError appendAttributeName(String attributeName, std::function<CborError (CborEncoder& mapEncoder)>f, CborEncoder *encoder);
     void setAttribute(String attributeName, std::function<void (CborMapData & md)>setValue);
-#else
-    CborError appendAttributeName(String attributeName, nonstd::function<CborError (CborEncoder& mapEncoder)>f, CborEncoder *encoder);
-    void setAttribute(String attributeName, nonstd::function<void (CborMapData & md)>setValue);
-#endif
     void setAttributesFromCloud(std::list<CborMapData> * map_data_list);
     void setAttribute(bool& value, String attributeName = "");
     void setAttribute(int& value, String attributeName = "");
@@ -224,6 +218,7 @@ class Property
 
   private:
     Permission         _permission;
+    WritePolicy        _write_policy;
     GetTimeCallbackFunc _get_time_func;
     UpdateCallbackFunc _update_callback_func;
     OnSyncCallbackFunc _on_sync_callback_func;
@@ -234,7 +229,7 @@ class Property
                        _has_been_appended_but_not_sended;
     /* Variables used for UpdatePolicy::TimeInterval */
     unsigned long      _last_updated_millis,
-             _update_interval_millis;
+                       _update_interval_millis;
     /* Variables used for reconnection sync*/
     unsigned long      _last_local_change_timestamp;
     unsigned long      _last_cloud_change_timestamp;

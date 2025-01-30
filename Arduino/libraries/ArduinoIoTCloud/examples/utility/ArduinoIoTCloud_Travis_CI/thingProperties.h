@@ -1,10 +1,9 @@
-#if defined(BOARD_HAS_WIFI)
-#elif defined(BOARD_HAS_GSM)
-#elif defined(BOARD_HAS_LORA)
-#elif defined(BOARD_HAS_NB)
-#elif defined(BOARD_HAS_ETHERNET)
-#else
-  #error "Please check Arduino IoT Cloud supported boards list: https://github.com/arduino-libraries/ArduinoIoTCloud/#what"
+#include <ArduinoIoTCloud.h>
+#include <Arduino_ConnectionHandler.h>
+#include "arduino_secrets.h"
+
+#if !(defined(HAS_TCP) || defined(HAS_LORA))
+  #error  "Please check Arduino IoT Cloud supported boards list: https://github.com/arduino-libraries/ArduinoIoTCloud/#what"
 #endif
 
 /******************************************************************************
@@ -13,6 +12,10 @@
 
 #if defined(BOARD_HAS_SECRET_KEY)
   #define BOARD_ID "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+#endif
+
+#if defined(HAS_LORA)
+  #define THING_ID "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 #endif
 
 /******************************************************************************
@@ -51,18 +54,22 @@ String str_property_7;
 String str_property_8;
 
 #if defined(BOARD_HAS_WIFI)
-  WiFiConnectionHandler ArduinoIoTPreferredConnection(SECRET_SSID, SECRET_PASS);
+  WiFiConnectionHandler ArduinoIoTPreferredConnection(SECRET_WIFI_SSID, SECRET_WIFI_PASS);
 #elif defined(BOARD_HAS_GSM)
   GSMConnectionHandler ArduinoIoTPreferredConnection(SECRET_PIN, SECRET_APN, SECRET_LOGIN, SECRET_PASS);
 #elif defined(BOARD_HAS_LORA)
   LoRaConnectionHandler ArduinoIoTPreferredConnection(SECRET_APP_EUI, SECRET_APP_KEY, EU868);
 #elif defined(BOARD_HAS_NB)
   NBConnectionHandler ArduinoIoTPreferredConnection(SECRET_PIN, SECRET_APN, SECRET_LOGIN, SECRET_PASS);
+#elif defined(BOARD_HAS_CATM1_NBIOT)
+  CatM1ConnectionHandler ArduinoIoTPreferredConnection(SECRET_PIN, SECRET_APN, SECRET_LOGIN, SECRET_PASS);
 #elif defined(BOARD_HAS_ETHERNET)
   /* DHCP mode */
   //EthernetConnectionHandler ArduinoIoTPreferredConnection;
   /* Manual mode. It will fallback in DHCP mode if SECRET_OPTIONAL_IP is invalid or equal to "0.0.0.0" */
   EthernetConnectionHandler ArduinoIoTPreferredConnection(SECRET_OPTIONAL_IP, SECRET_OPTIONAL_DNS, SECRET_OPTIONAL_GATEWAY, SECRET_OPTIONAL_NETMASK);
+#elif defined(BOARD_HAS_CELLULAR)
+  CellularConnectionHandler ArduinoIoTPreferredConnection(SECRET_PIN, SECRET_APN, SECRET_LOGIN, SECRET_PASS);
 #endif
 
 /******************************************************************************
@@ -77,7 +84,7 @@ void onStringPropertyChange();
 /******************************************************************************
    FUNCTIONS
  ******************************************************************************/
-#if defined(BOARD_HAS_WIFI) || defined(BOARD_HAS_GSM) || defined (BOARD_HAS_NB)
+#if defined(HAS_TCP)
 void initProperties() {
 #if defined(BOARD_HAS_SECRET_KEY)
   ArduinoCloud.setBoardId(BOARD_ID);
@@ -110,8 +117,9 @@ void initProperties() {
   ArduinoCloud.addProperty(str_property_8, Permission::ReadWrite).publishEvery(1 * SECONDS).onSync(DEVICE_WINS);
 }
 
-#elif defined(BOARD_HAS_LORA)
+#elif defined(HAS_LORA)
 void initProperties() {
+  ArduinoCloud.setThingId(THING_ID);
 
   ArduinoCloud.addProperty(bool_property_1,  1,   READWRITE, 1 * SECONDS);
   ArduinoCloud.addProperty(int_property_1,   2,   READ,      2 * MINUTES);

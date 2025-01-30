@@ -6,7 +6,6 @@
 
 */
 
-#include "arduino_secrets.h"
 #include "thingProperties.h"
 
 #if !defined(LED_BUILTIN) && !defined(ARDUINO_NANO_ESP32)
@@ -16,7 +15,16 @@ static int const LED_BUILTIN = 2;
 void setup() {
   /* Initialize the serial port and wait up to 5 seconds for a connection */
   Serial.begin(9600);
-  for(unsigned long const serialBeginTime = millis(); !Serial && (millis() - serialBeginTime > 5000); ) { }
+  for(unsigned long const serialBeginTime = millis(); !Serial && (millis() - serialBeginTime <= 5000); ) { }
+
+  /* Set the debug message level:
+   * - DBG_ERROR: Only show error messages
+   * - DBG_WARNING: Show warning and error messages
+   * - DBG_INFO: Show info, warning, and error messages
+   * - DBG_DEBUG: Show debug, info, warning, and error messages
+   * - DBG_VERBOSE: Show all messages
+   */
+  setDebugMessageLevel(DBG_INFO);
 
   /* Configure LED pin as an output */
   pinMode(LED_BUILTIN, OUTPUT);
@@ -27,7 +35,6 @@ void setup() {
   /* Initialize Arduino IoT Cloud library */
   ArduinoCloud.begin(ArduinoIoTPreferredConnection);
 
-  setDebugMessageLevel(DBG_INFO);
   ArduinoCloud.printDebugInfo();
 
   /* Setup one shot schedule example */
@@ -207,7 +214,7 @@ void loop() {
   if(daily.isActive()) {
     Serial.println("Daily schedule is active");
   }
-  
+
   /* Activate LED when the weekly schedule is active */
   digitalWrite(LED_BUILTIN, weekly.isActive());
 
@@ -220,5 +227,4 @@ void loop() {
   if(yearly.isActive()) {
     Serial.println("Yearly schedule is active");
   }
-
 }
