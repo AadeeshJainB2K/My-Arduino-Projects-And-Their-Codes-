@@ -1,39 +1,41 @@
 /*
-  Diwani Rocket Launcher – Final Stable Version
+  Diwani Rocket Launcher – Receiver (Launcher)
   - Arduino UNO
+  - RadioHead RH_ASK receiver on pin 3
   - Relays (Active LOW) -> 10, 11
   - Buzzer -> 9
-  - RF Receiver Input -> 3 (remote start)
-  - Switches (INPUT_PULLUP, active LOW):
-      RESET   -> 7
-      INC     -> 6
-      DEC     -> 5
-      START   -> 4
+  - Music trigger -> 2 (plays once at T-3s)
+  - Buttons (INPUT_PULLUP, active LOW):
+      RESET -> 7
+      INC   -> 6
+      DEC   -> 5
+      START -> 4
   - LCD I2C (0x27) on A4 (SDA), A5 (SCL)
+  - Requires RadioHead library (RH_ASK) and LiquidCrystal_I2C
 */
 
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#include <RH_ASK.h>
+#include <SPI.h>
+
+RH_ASK rf(2000, 3, -1, -1); // bitrate, rxPin=3, txPin=-1, pttPin=-1
 
 // ===== Pins =====
 const uint8_t RELAY1_PIN = 10;
 const uint8_t RELAY2_PIN = 11;
 const uint8_t BUZZER_PIN = 9;
-const uint8_t RF_PIN     = 3;
+const uint8_t MUSIC = 2;
 
 const uint8_t SW_RESET_PIN = 7;
 const uint8_t SW_INC_PIN   = 6;
 const uint8_t SW_DEC_PIN   = 5;
 const uint8_t SW_START_PIN = 4;
 
-#define MUSIC 2
-
-
 // ===== Constants =====
 const unsigned long RELAY_HOLD_MS = 5000UL;
 const unsigned long TIMER_MAX_SECONDS = 3600UL;
-const unsigned long DEBOUNCE_MS = 150;   // a little longer = more stable
-
+const unsigned long DEBOUNCE_MS = 150;   // stable
 const unsigned int BUZZER_BEEP_MS = 120;
 const unsigned int BUZZER_FINAL_MS = 1000;
 
@@ -41,7 +43,7 @@ const unsigned int BUZZER_FINAL_MS = 1000;
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 // ===== State =====
-volatile bool rfStartRequest = false;
+volatile bool rfMessagePending = false;
 unsigned long remainingSeconds = 0;
 bool running = false;
 bool relaysActive = false;
@@ -64,8 +66,6 @@ unsigned long lastTick = 0;
 // ===== Helper =====
 inline bool isPressed(uint8_t pin) { return digitalRead(pin) == LOW; }
 
-void rfPulse() { rfStartRequest = true; }
-
 void shortBeep() {
   tone(BUZZER_PIN, 2000);
   delay(BUZZER_BEEP_MS);
@@ -82,19 +82,19 @@ void finalBeep() {
 void setupPins() {
   pinMode(RELAY1_PIN, OUTPUT);
   pinMode(RELAY2_PIN, OUTPUT);
-  digitalWrite(RELAY1_PIN, HIGH);
+  digitalWrite(RELAY1_PIN, HIGH); // relays off (active LOW)
   digitalWrite(RELAY2_PIN, HIGH);
 
   pinMode(BUZZER_PIN, OUTPUT);
   noTone(BUZZER_PIN);
 
+  pinMode(MUSIC, OUTPUT);
+  digitalWrite(MUSIC, LOW);
+
   pinMode(SW_RESET_PIN, INPUT_PULLUP);
   pinMode(SW_INC_PIN,   INPUT_PULLUP);
   pinMode(SW_DEC_PIN,   INPUT_PULLUP);
   pinMode(SW_START_PIN, INPUT_PULLUP);
-
-  pinMode(RF_PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(RF_PIN), rfPulse, FALLING);
 }
 
 void setup() {
@@ -110,8 +110,13 @@ void setup() {
   lastTick = millis();
   updateLCD();
   Serial.println("System Ready.");
-  pinMode(MUSIC, OUTPUT);
-  digitalWrite(MUSIC, LOW); // keep it off by default
+
+  // init RF
+  if (!rf.init()) {
+    Serial.println("RF init failed!");
+  } else {
+    Serial.println("RF receiver ready.");
+  }
 }
 
 // ===== LCD =====
@@ -237,21 +242,42 @@ void handleButtons() {
   prevStartState = startNow;
 }
 
-// ===== RF =====
+// ===== RF (process inbound messages) =====
 void processRF() {
-  if (!rfStartRequest) return;
-  rfStartRequest = false;
-  Serial.println("RF start received.");
-  if (remainingSeconds == 0) {
-    Serial.println("RF start blocked (0s).");
-    tone(BUZZER_PIN, 1200);
-    delay(120);
-    noTone(BUZZER_PIN);
-    return;
+  uint8_t buf[32];
+  uint8_t buflen = sizeof(buf);
+  if (rf.recv(buf, &buflen)) {
+    buf[buflen] = '\0';
+    Serial.print("RF msg: ");
+    Serial.println((char*)buf);
+
+    // feedback
+    tone(BUZZER_PIN, 1800, 120);          // short beep on RF received
+    lcd.setCursor(0,1);
+    lcd.print("RF: ");
+    lcd.print((char*)buf);
+    lcd.print("        ");
+    delay(150);
+    updateLCD();
+
+    if (strcmp((char*)buf, "START") == 0) {
+      if (remainingSeconds == 0) {
+        Serial.println("RF start blocked (0s).");
+        tone(BUZZER_PIN, 1200, 150);
+        return;
+      }
+      running = !running;
+      if (running) {
+        lastTick = millis();
+        Serial.println("RF -> Countdown STARTED");
+        shortBeep();
+      } else {
+        Serial.println("RF -> Countdown PAUSED");
+        tone(BUZZER_PIN, 800, 120);
+      }
+      updateLCD();
+    }
   }
-  running = !running;
-  lastTick = millis();
-  updateLCD();
 }
 
 // ===== Countdown =====
@@ -269,14 +295,15 @@ void handleCountdownTick() {
 
     if (remainingSeconds > 0 && remainingSeconds <= 5) shortBeep();
 
-    if (remainingSeconds == 1) {
+    // trigger music at T-3s
+    if (remainingSeconds == 3) {
       Serial.println("🎵 Triggering Happy Diwali music!");
-       digitalWrite(MUSIC, HIGH);
-       delay(200);                 // short pulse to trigger the module
-       digitalWrite(MUSIC, LOW);
-    }  
+      digitalWrite(MUSIC, HIGH);
+      delay(200);
+      digitalWrite(MUSIC, LOW);
+    }
+
     if (remainingSeconds == 0 && running) {
-      // 🎵 Play Happy Diwali music trigger 3 seconds before launch
       running = false;
       Serial.println("Countdown done -> FIRE!");
       updateLCD();
