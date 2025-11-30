@@ -11,18 +11,18 @@ License: Remixing or Changing this Thing is allowed. Commercial use is not allow
 */
 
 
-#define in1 3 //L298n Motor Driver pins.
-#define in2 4
-#define in3 7
-#define in4 8
+#define in1 8 //L298n Motor Driver pins.
+#define in2 7
+#define in3 3
+#define in4 4
 #define LED 13
 int command; //Int to store app command state.
-int Speed = 204; // 0 - 255.
+int Speed = 255; // 0 - 255.
 int Speedsec;
 int buttonState = 0;
 int lastButtonState = 0;
 int Turnradius = 0; //Set the radius of a turn, 0 - 255 Note:the robot will malfunction if this is higher than int Speed.
-int brakeTime = 45;
+int brakeTime = 0;
 int brkonoff = 1; //1 for the electronic braking system, 0 for normal.
 void setup() {
   pinMode(in1, OUTPUT);
@@ -115,28 +115,28 @@ void back() {
   analogWrite(in4, Speed);
 }
 
-void left() {
+void right() {
   analogWrite(in3, Speed);
   analogWrite(in2, Speed);
 }
 
-void right() {
+void left() {
   analogWrite(in4, Speed);
   analogWrite(in1, Speed);
 }
-void forwardleft() {
+void forwardright() {
   analogWrite(in1, Speedsec);
   analogWrite(in3, Speed);
 }
-void forwardright() {
+void forwardleft() {
   analogWrite(in1, Speed);
   analogWrite(in3, Speedsec);
 }
-void backright() {
+void backleft() {
   analogWrite(in2, Speed);
   analogWrite(in4, Speedsec);
 }
-void backleft() {
+void backright() {
   analogWrite(in2, Speedsec);
   analogWrite(in4, Speed);
 }
