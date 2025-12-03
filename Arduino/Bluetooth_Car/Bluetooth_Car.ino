@@ -1,175 +1,219 @@
-/*
-Code Name: Arduino Bluetooth Control Car 
-Code URL: https://circuitbest.com/how-to-make-bluetooth-controlled-car-using-arduino/
-Author: Make DIY
-Author URI: https://circuitbest.com/author/admin/
-Description: This program is used to control a robot using a app
-that communicates with Arduino through a bluetooth module.
-App URI: https://bit.ly/2BlMAea
-Version: 1.0
-License: Remixing or Changing this Thing is allowed. Commercial use is not allowed.
-*/
+// ---------------- MOTOR PINS (L298N) ----------------
+#define ENA 3     // Left motor speed (PWM)
+#define IN1 4
+#define IN2 5
+
+#define ENB 9     // Right motor speed (PWM)
+#define IN3 6
+#define IN4 7
+
+// ---------------- OTHER PINS ----------------
+#define buzPin 13     // Horn
+#define rPin 10       // RGB Red
+#define gPin 11       // RGB Green
+#define bPin 12       // RGB Blue
+
+int valSpeed = 255;
+bool btConnected = false;
+unsigned long lastCmdTime = 0;
 
 
-#define in1 8 //L298n Motor Driver pins.
-#define in2 7
-#define in3 3
-#define in4 4
-#define LED 13
-int command; //Int to store app command state.
-int Speed = 255; // 0 - 255.
-int Speedsec;
-int buttonState = 0;
-int lastButtonState = 0;
-int Turnradius = 0; //Set the radius of a turn, 0 - 255 Note:the robot will malfunction if this is higher than int Speed.
-int brakeTime = 0;
-int brkonoff = 1; //1 for the electronic braking system, 0 for normal.
+// ---------------- SETUP ----------------
 void setup() {
-  pinMode(in1, OUTPUT);
-  pinMode(in2, OUTPUT);
-  pinMode(in3, OUTPUT);
-  pinMode(in4, OUTPUT);
-  pinMode(LED, OUTPUT); //Set the LED pin.
-  Serial.begin(9600);  //Set the baud rate to your Bluetooth module.
+
+  Serial.begin(9600);
+
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+
+  pinMode(ENA, OUTPUT);
+  pinMode(ENB, OUTPUT);
+
+  pinMode(buzPin, OUTPUT);
+  pinMode(rPin, OUTPUT);
+  pinMode(gPin, OUTPUT);
+  pinMode(bPin, OUTPUT);
+
+  StopMotors();
+
+  // Bluetooth NOT connected → RED
+  setRGB(255, 0, 0);
 }
 
+
+
+// ---------------- MAIN LOOP ----------------
 void loop() {
+
   if (Serial.available() > 0) {
-    command = Serial.read();
-    Stop(); //Initialize with motors stoped.
-    switch (command) {
-      case 'F':
-        forward();
-        break;
-      case 'B':
-        back();
-        break;
-      case 'L':
-        left();
-        break;
-      case 'R':
-        right();
-        break;
-      case 'G':
-        forwardleft();
-        break;
-      case 'I':
-        forwardright();
-        break;
-      case 'H':
-        backleft();
-        break;
-      case 'J':
-        backright();
-        break;
-      case '0':
-        Speed = 100;
-        break;
-      case '1':
-        Speed = 140;
-        break;
-      case '2':
-        Speed = 153;
-        break;
-      case '3':
-        Speed = 165;
-        break;
-      case '4':
-        Speed = 178;
-        break;
-      case '5':
-        Speed = 191;
-        break;
-      case '6':
-        Speed = 204;
-        break;
-      case '7':
-        Speed = 216;
-        break;
-      case '8':
-        Speed = 229;
-        break;
-      case '9':
-        Speed = 242;
-        break;
-      case 'q':
-        Speed = 255;
-        break;
-    }
-    Speedsec = Turnradius;
-    if (brkonoff == 1) {
-      brakeOn();
-    } else {
-      brakeOff();
-    }
+    btConnected = true;
+    lastCmdTime = millis();
+    setRGB(0, 255, 0);  // Green = Connected
+
+    char cmd = Serial.read();
+    handleCommand(cmd);
+  }
+
+  // Auto disconnect if no command
+  if (btConnected && (millis() - lastCmdTime > 5000)) {
+    btConnected = false;
+    StopMotors();
+    setRGB(255, 0, 0);  // Red = Disconnected
   }
 }
 
-void forward() {
-  analogWrite(in1, Speed);
-  analogWrite(in3, Speed);
-}
 
-void back() {
-  analogWrite(in2, Speed);
-  analogWrite(in4, Speed);
-}
 
-void right() {
-  analogWrite(in3, Speed);
-  analogWrite(in2, Speed);
-}
+// ---------------- COMMAND HANDLER ----------------
+void handleCommand(char cmd) {
 
-void left() {
-  analogWrite(in4, Speed);
-  analogWrite(in1, Speed);
-}
-void forwardright() {
-  analogWrite(in1, Speedsec);
-  analogWrite(in3, Speed);
-}
-void forwardleft() {
-  analogWrite(in1, Speed);
-  analogWrite(in3, Speedsec);
-}
-void backleft() {
-  analogWrite(in2, Speed);
-  analogWrite(in4, Speedsec);
-}
-void backright() {
-  analogWrite(in2, Speedsec);
-  analogWrite(in4, Speed);
-}
+  // Car moving → turn OFF RGB
+  if (cmd=='F'||cmd=='B'||cmd=='L'||cmd=='R'||cmd=='G'||cmd=='H'||cmd=='I'||cmd=='J')
+      setRGB(0,0,0);
 
-void Stop() {
-  analogWrite(in1, 0);
-  analogWrite(in2, 0);
-  analogWrite(in3, 0);
-  analogWrite(in4, 0);
-}
+  switch(cmd) {
 
-void brakeOn() {
-  //Here's the future use: an electronic braking system!
-  // read the pushbutton input pin:
-  buttonState = command;
-  // compare the buttonState to its previous state
-  if (buttonState != lastButtonState) {
-    // if the state has changed, increment the counter
-    if (buttonState == 'S') {
-      if (lastButtonState != buttonState) {
-        digitalWrite(in1, HIGH);
-        digitalWrite(in2, HIGH);
-        digitalWrite(in3, HIGH);
-        digitalWrite(in4, HIGH);
-        delay(brakeTime);
-        Stop();
-      }
-    }
-    // save the current state as the last state,
-    //for next time through the loop
-    lastButtonState = buttonState;
+    case 'F':   // Forward
+      moveForward(valSpeed);
+      break;
+
+    case 'B':   // Backward
+      setRGB(255,255,0); // Yellow
+      moveBackward(valSpeed);
+      break;
+
+    case 'L':   // Turn left
+      turnLeft(valSpeed);
+      break;
+
+    case 'R':   // Turn right
+      turnRight(valSpeed);
+      break;
+
+    case 'G':   // Forward-left
+      moveCustom(valSpeed/4, valSpeed);
+      break;
+
+    case 'H':   // Forward-right
+      moveCustom(valSpeed, valSpeed/4);
+      break;
+
+    case 'I':   // Backward-left
+      setRGB(255,255,0);
+      moveCustom(-valSpeed/4, -valSpeed);
+      break;
+
+    case 'J':   // Backward-right
+      setRGB(255,255,0);
+      moveCustom(-valSpeed, -valSpeed/4);
+      break;
+
+    case 'S':   // Stop
+      StopMotors();
+      break;
+
+    // HORN
+    case 'Y': digitalWrite(buzPin, HIGH); break;  // Horn ON
+    case 'y': digitalWrite(buzPin, LOW);  break;  // Horn OFF
+
+    // HEADLIGHT
+    case 'X': setRGB(255,255,255); break;  // White
+    case 'x': setRGB(0,0,0); break;        // OFF
+
+    // SPEED
+    case '0': SetSpeed(0); break;
+    case '1': SetSpeed(25); break;
+    case '2': SetSpeed(50); break;
+    case '3': SetSpeed(75); break;
+    case '4': SetSpeed(100); break;
+    case '5': SetSpeed(125); break;
+    case '6': SetSpeed(150); break;
+    case '7': SetSpeed(175); break;
+    case '8': SetSpeed(200); break;
+    case '9': SetSpeed(255); break;
   }
 }
-void brakeOff() {
 
+
+
+// ---------------- MOTOR FUNCTIONS ----------------
+void SetSpeed(int s){
+  valSpeed = s;
+}
+
+void moveForward(int s){
+  analogWrite(ENA, s);
+  analogWrite(ENB, s);
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+}
+
+void moveBackward(int s){
+  analogWrite(ENA, s);
+  analogWrite(ENB, s);
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+}
+
+void turnLeft(int s){
+  analogWrite(ENA, s);
+  analogWrite(ENB, s);
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+}
+
+void turnRight(int s){
+  analogWrite(ENA, s);
+  analogWrite(ENB, s);
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+}
+
+void moveCustom(int leftSpeed, int rightSpeed){
+
+  // LEFT MOTOR
+  if(leftSpeed >= 0){
+    analogWrite(ENA, leftSpeed);
+    digitalWrite(IN1, HIGH);
+    digitalWrite(IN2, LOW);
+  } else {
+    analogWrite(ENA, -leftSpeed);
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, HIGH);
+  }
+
+  // RIGHT MOTOR
+  if(rightSpeed >= 0){
+    analogWrite(ENB, rightSpeed);
+    digitalWrite(IN3, HIGH);
+    digitalWrite(IN4, LOW);
+  } else {
+    analogWrite(ENB, -rightSpeed);
+    digitalWrite(IN3, LOW);
+    digitalWrite(IN4, HIGH);
+  }
+}
+
+void StopMotors(){
+  analogWrite(ENA, 0);
+  analogWrite(ENB, 0);
+}
+
+
+
+// ---------------- RGB FUNCTION ----------------
+void setRGB(int r, int g, int b){
+  analogWrite(rPin, r);
+  analogWrite(gPin, g);
+  analogWrite(bPin, b);
 }
