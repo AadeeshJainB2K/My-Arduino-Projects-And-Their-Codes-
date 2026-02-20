@@ -1,57 +1,62 @@
+#include <Servo.h>
 
-//www.quadstore.in
-//www.quadrobotics.in
-//Smart Dustbin by Quad Store
+// Define the pins you provided
+const int trigPin = 9;    
+const int echoPin = 8;   
+const int servoPin = 3;
 
-#include <Servo.h>   //servo library
-#include <Arduino.h>
-Servo servo;     
-int trigPin = 9;    
-int echoPin = 8;   
-int servoPin = 3;
-int led= 10;
-long duration, dist, average;   
-long aver[3];   //array for average
+// Create a servo object to control the servo motor
+Servo lidServo;
 
+// Variables for calculating distance
+long duration;
+int distance;
 
-void setup() {       
-    Serial.begin(9600);
-    servo.attach(servoPin);  
-    pinMode(trigPin, OUTPUT);  
-    pinMode(echoPin, INPUT);  
-    servo.write(0);         //close cap on power on
-    delay(100);
-    servo.detach(); 
-} 
-
-void measure() {  
-digitalWrite(10,HIGH);
-digitalWrite(trigPin, LOW);
-delayMicroseconds(5);
-digitalWrite(trigPin, HIGH);
-delayMicroseconds(15);
-digitalWrite(trigPin, LOW);
-pinMode(echoPin, INPUT);
-duration = pulseIn(echoPin, HIGH);
-dist = (duration/2) / 29.1;    //obtain distance
+void setup() {
+  // Initialize serial communication for debugging
+  Serial.begin(9600);
+  
+  // Define pin modes for the ultrasonic sensor
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  
+  // Attach the servo to its pin
+  lidServo.attach(servoPin);
+  
+  // Set the initial position of the servo (Lid Closed)
+  // You may need to change '0' to match your physical lid's closed position
+  lidServo.write(0); 
 }
-void loop() { 
-  for (int i=0;i<=2;i++) {   //average distance
-    measure();               
-   aver[i]=dist;            
-    delay(10);              //delay between measurements
+
+void loop() {
+  // 1. Send an ultrasonic pulse
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  
+  // 2. Read the echo pin (returns the sound wave travel time in microseconds)
+  duration = pulseIn(echoPin, HIGH);
+  
+  // 3. Calculate the distance in centimeters
+  // Speed of sound is 0.034 cm/us. Divide by 2 because the wave travels out and back.
+  distance = duration * 0.034 / 2;
+  
+  // Print distance to Serial Monitor for testing
+  Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+  
+  // 4. Logic for the Smart Dustbin
+  // If an object is closer than 30 cm (and greater than 0 to filter out errors)
+  if (distance > 0 && distance <= 30) {
+    lidServo.write(-80);  // Open the lid (90 degrees)
+    delay(3000);         // Keep the lid open for 3 seconds
+  } else {
+    lidServo.write(0);   // Keep the lid closed (0 degrees)
   }
- dist=(aver[0]+aver[1]+aver[2])/3;    
-
-if ( dist<200 ) {
-//Change distance as per your need
- servo.attach(servoPin);
- delay(1);
- servo.write(350);  
- delay(3000);       
- servo.write(0);    
- delay(1000);
- servo.detach();      
-}
-Serial.print(dist);
+  
+  // A small delay before taking the next measurement to ensure sensor stability
+  delay(100); 
 }
